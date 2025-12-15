@@ -314,10 +314,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text
 
-    # Проверяем, ожидаем ли мы ввод группы
     if context.user_data is not None and context.user_data.get('awaiting_group', False):
         await handle_group_input(update, context)
         return
 
-    # Если это не ввод группы, обрабатываем как обычное сообщение
     await handle_buttons(update, context)
