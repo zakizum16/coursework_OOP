@@ -109,11 +109,9 @@ class ETUApiClient:
         if not lessons:
             return []
 
-        # Определяем четность недели
         current_week = datetime.now().isocalendar()[1]
         is_even_week = current_week % 2 == 0
 
-        # Группируем по времени
         time_groups = {}
         for lesson in lessons:
             time_start = lesson.get('start_time', '')
@@ -128,11 +126,11 @@ class ETUApiClient:
             if len(group) == 1:
                 unique_lessons.append(group[0])
             elif len(group) == 2:
-                # Предполагаем, что первая в списке - для четных недель, вторая - для нечетных
+                
                 selected_lesson = group[0] if is_even_week else group[1]
                 unique_lessons.append(selected_lesson)
             else:
-                # Если больше 2, берем первую для четных, вторую для нечетных, или логируем ошибку
+              
                 logger.warning(f"Больше двух пар в одно время {time_key}: {len(group)} пар")
                 selected_lesson = group[0] if is_even_week else group[1] if len(group) > 1 else group[0]
                 unique_lessons.append(selected_lesson)
