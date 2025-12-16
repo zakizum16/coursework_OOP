@@ -105,25 +105,37 @@ class ETUApiClient:
         return full_schedule[group_number]
 
     def remove_duplicate_lessons(self, lessons: List[Dict]) -> List[Dict]:
-        """Удаляет дублирующиеся пары из списка занятий"""
+        """Удаляет дублирующиеся пары из списка занятий, учитывая четность недели"""
         if not lessons:
             return []
 
-        seen_combinations = {}
-        unique_lessons = []
+        # Определяем четность недели
+        current_week = datetime.now().isocalendar()[1]
+        is_even_week = current_week % 2 == 0
 
+        # Группируем по времени
+        time_groups = {}
         for lesson in lessons:
             time_start = lesson.get('start_time', '')
             time_end = lesson.get('end_time', '')
-            subject = lesson.get('name', '')
-            teacher = lesson.get('teacher', '')
-            classroom = lesson.get('room', '')
+            time_key = f"{time_start}|{time_end}"
+            if time_key not in time_groups:
+                time_groups[time_key] = []
+            time_groups[time_key].append(lesson)
 
-            key = f"{time_start}|{time_end}|{subject}|{teacher}|{classroom}"
-
-            if key not in seen_combinations:
-                seen_combinations[key] = True
-                unique_lessons.append(lesson)
+        unique_lessons = []
+        for time_key, group in time_groups.items():
+            if len(group) == 1:
+                unique_lessons.append(group[0])
+            elif len(group) == 2:
+                # Предполагаем, что первая в списке - для четных недель, вторая - для нечетных
+                selected_lesson = group[0] if is_even_week else group[1]
+                unique_lessons.append(selected_lesson)
+            else:
+                # Если больше 2, берем первую для четных, вторую для нечетных, или логируем ошибку
+                logger.warning(f"Больше двух пар в одно время {time_key}: {len(group)} пар")
+                selected_lesson = group[0] if is_even_week else group[1] if len(group) > 1 else group[0]
+                unique_lessons.append(selected_lesson)
 
         return unique_lessons
 
