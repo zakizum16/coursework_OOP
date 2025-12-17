@@ -1,7 +1,7 @@
 
 import logging
 import sys
-
+# это логгер конфиг
 # настройка цветов для логов
 class ColorFormatter(logging.Formatter):
     COLORS = {
