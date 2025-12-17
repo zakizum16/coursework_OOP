@@ -130,9 +130,9 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "❓ Помощь":
         await help_command(update, context)
 
-    elif text == "🔧 Сменить группу":
-        await ask_for_group(update, context)
-
+    elif text == "⬅️ Назад":
+        await start_command(update, context)
+        return
 
 async def show_schedule_options(update: Update, context: ContextTypes.DEFAULT_TYPE, group_number: str):
     """Показывает варианты расписания"""

@@ -1,6 +1,3 @@
-"""
-Главный файл запуска телеграм бота
-"""
 import os
 import sys
 from dotenv import load_dotenv
@@ -11,6 +8,7 @@ from logger_config import setup_logger
 
 setup_logger()
 
+# импорты обработчиков
 from bot_handlers import (
     BOT_NAME, DEVELOPER_ID,
     start_command, handle_text, help_command,
@@ -18,13 +16,12 @@ from bot_handlers import (
 )
 
 import logging
-from telegram import Update 
+from telegram import Update
 
 logger = logging.getLogger(__name__)
 
 
 def main():
-    """Основная функция запуска бота"""
     from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
     token = os.getenv("BOT_TOKEN")

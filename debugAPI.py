@@ -3,6 +3,8 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+# функции для работы с api
+
 
 def fetch_all_groups() -> Optional[List[Dict]]:
     """Получаем все группы с API"""
@@ -103,32 +105,25 @@ def get_formatted_date(day_number: int) -> str:
 
 
 def remove_duplicate_lessons(lessons: List[Dict]) -> List[Dict]:
-    """Удаляет дублирующиеся пары из списка занятий"""
     if not lessons:
         return []
 
-    # Создаем словарь для отслеживания уникальных пар
     seen_combinations = {}
     unique_lessons = []
 
     for lesson in lessons:
-        # Создаем ключ на основе основных атрибутов пары
         time_start = lesson.get('start_time', '')
         time_end = lesson.get('end_time', '')
         subject = lesson.get('name', '')
         teacher = lesson.get('teacher', '')
         classroom = lesson.get('room', '')
 
-        # Ключ для сравнения (игнорируем подгруппы и вторых преподавателей)
         key = f"{time_start}|{time_end}|{subject}|{teacher}|{classroom}"
 
-        # Если мы еще не видели такую комбинацию, добавляем её
         if key not in seen_combinations:
             seen_combinations[key] = True
             unique_lessons.append(lesson)
         else:
-            # Это дубликат - можно его проигнорировать или добавить информацию о подгруппе
-            # к существующей записи
             pass
 
     return unique_lessons

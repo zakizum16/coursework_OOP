@@ -6,26 +6,25 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-
+# класс для работы с api
 class ETUApiClient:
     def __init__(self):
         self.base_url = "https://digital.etu.ru/api/mobile"
         self.groups_cache = None
         self.schedule_cache = {}
         self.cache_time = None
-        self.cache_duration = timedelta(hours=6)
+        self.cache_duration = timedelta(hours=24)
         self.day_names = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+        self.session = requests.Session()
 
     def fetch_all_groups(self) -> Optional[List[Dict]]:
-
         try:
-            
             if self.groups_cache and self.cache_time:
                 if datetime.now() - self.cache_time < self.cache_duration:
                     logger.info("Используем кэшированные данные групп")
                     return self.groups_cache
 
-            response = requests.get(f"{self.base_url}/groups", timeout=15)
+            response = self.session.get(f"{self.base_url}/groups", timeout=15)
             response.raise_for_status()
             self.groups_cache = response.json()
             self.cache_time = datetime.now()
@@ -77,7 +76,7 @@ class ETUApiClient:
             }
 
             logger.info("Загружаю полное расписание...")
-            response = requests.get(
+            response = self.session.get(
                 f"{self.base_url}/schedule",
                 params=params,
                 timeout=30
@@ -375,4 +374,7 @@ class ETUApiClient:
                 pass
 
         return result
+
+
+# Создаем экземпляр API клиента для импорта
 api_client = ETUApiClient()
