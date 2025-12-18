@@ -5,21 +5,20 @@ import logging
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 
-from etu_api import api_client  # Импортируем API клиент
+from etu_api import api_client  
 
 logger = logging.getLogger(__name__)
 
 BOT_NAME = "ЛЭТИ Бот"
 DEVELOPER_ID = 662272545
 
-# Словарь для хранения выбранных групп пользователей
 user_groups = {}
 
 
 def get_beautiful_keyboard():
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton("📅 Расписание")],
+            [KeyboardButton("📅 Расписание"), KeyboardButton("📆 Выбрать день")],
             [KeyboardButton("⏱ Ближайшая пара"), KeyboardButton("🌅 Завтра")],
             [KeyboardButton("🗓 Неделя"), KeyboardButton("❓ Помощь")],
             [KeyboardButton("🔧 Сменить группу")]
@@ -34,7 +33,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     logger.info(f"User {user.id} (@{user.username}) sent /start")
 
-    # Проверяем, есть ли у пользователя сохраненная группа
     if user.id not in user_groups:
         await ask_for_group(update, context)
         return
@@ -118,6 +116,9 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == "📅 Расписание":
         await show_schedule_options(update, context, group_number)
 
+    elif text == "📆 Выбрать день":
+        await show_weekdays_selector(update, context, group_number)
+
     elif text == "⏱ Ближайшая пара":
         await show_next_lesson(update, context, group_number)
 
@@ -129,6 +130,16 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif text == "❓ Помощь":
         await help_command(update, context)
+
+    elif text == "🔧 Сменить группу":
+        await ask_for_group(update, context)
+
+    elif text.startswith("📅 "):
+        day_name = text[2:]
+        day_names = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+        if day_name in day_names:
+            day_index = day_names.index(day_name)
+            await show_day_schedule(update, context, group_number, day_index)
 
     elif text == "⬅️ Назад":
         await start_command(update, context)
@@ -150,6 +161,64 @@ async def show_schedule_options(update: Update, context: ContextTypes.DEFAULT_TY
         reply_markup=reply_markup,
         parse_mode="HTML"
     )
+
+
+async def show_weekdays_selector(update: Update, context: ContextTypes.DEFAULT_TYPE, group_number: str):
+    """Показывает кнопки для выбора дня недели"""
+    from datetime import datetime
+    keyboard = [
+        [KeyboardButton("📅 Понедельник"), KeyboardButton("📅 Вторник")],
+        [KeyboardButton("📅 Среда"), KeyboardButton("📅 Четверг")],
+        [KeyboardButton("📅 Пятница"), KeyboardButton("📅 Суббота")],
+        [KeyboardButton("📅 Воскресенье")],
+        [KeyboardButton("⬅️ Назад")]
+    ]
+
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    current_week = datetime.now().isocalendar()[1]
+    is_even_week = current_week % 2 == 0
+    week_type = "четная" if is_even_week else "нечетная"
+
+    await update.message.reply_text(
+        f"📅 <b>Расписание группы {group_number}</b>\n"
+        f"Текущая неделя: <b>{week_type}</b>\n\n"
+        "Выберите день недели:",
+        reply_markup=reply_markup,
+        parse_mode="HTML"
+    )
+
+
+async def show_day_schedule(update: Update, context: ContextTypes.DEFAULT_TYPE, group_number: str, day_index: int):
+    """Показывает расписание на выбранный день"""
+    await update.message.reply_chat_action(action="typing")
+
+    day_schedule = api_client.get_schedule_for_weekday(group_number, day_index)
+
+    if not day_schedule:
+        await update.message.reply_text(
+            "❌ Не удалось загрузить расписание. Попробуйте позже.",
+            reply_markup=get_beautiful_keyboard()
+        )
+        return
+
+    if len(day_schedule) > 4000:
+        parts = [day_schedule[i:i + 4000] for i in range(0, len(day_schedule), 4000)]
+        for part in parts:
+            await update.message.reply_text(part, parse_mode="HTML")
+        await update.message.reply_text(
+            "✅ Расписание загружено!",
+            reply_markup=get_beautiful_keyboard(),
+            parse_mode="HTML"
+        )
+    else:
+        await update.message.reply_text(
+            day_schedule,
+            reply_markup=get_beautiful_keyboard(),
+            parse_mode="HTML"
+        )
+
+
+
 
 
 async def show_next_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE, group_number: str):
@@ -185,7 +254,6 @@ async def show_tomorrow_schedule(update: Update, context: ContextTypes.DEFAULT_T
         )
         return
 
-    # Разбиваем длинное сообщение если нужно
     if len(tomorrow_schedule) > 4000:
         parts = [tomorrow_schedule[i:i + 4000] for i in range(0, len(tomorrow_schedule), 4000)]
         for part in parts:
@@ -283,7 +351,6 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик ошибок"""
     error = context.error
 
-    # Логируем ошибку
     logger.error(f"Ошибка при обработке сообщения: {error}")
 
     # Отправляем уведомление разработчику

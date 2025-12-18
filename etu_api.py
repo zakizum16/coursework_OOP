@@ -62,13 +62,12 @@ class ETUApiClient:
         monday = today - timedelta(days=today.weekday())
         cache_key = monday.strftime('%Y-%m-%d')
 
-        # Проверяем кэш
         if cache_key in self.schedule_cache:
             logger.info(f"Используем кэшированное расписание для {cache_key}")
             return self.schedule_cache[cache_key]
 
         try:
-            end_date = monday + timedelta(days=6)  # Воскресенье
+            end_date = monday + timedelta(days=6)  
 
             params = {
                 'from': monday.strftime('%Y-%m-%d'),
@@ -143,8 +142,7 @@ class ETUApiClient:
             return None
 
         days_data = group_schedule.get('days', {})
-        today_key = str(datetime.now().weekday())  # 0 для понедельника и т.д.
-
+        today_key = str(datetime.now().weekday())  
         if today_key not in days_data:
             current_weekday = datetime.now().weekday()
             day_name = self.day_names[current_weekday]
@@ -169,7 +167,7 @@ class ETUApiClient:
             return None
 
         days_data = group_schedule.get('days', {})
-        tomorrow_key = str((datetime.now().weekday() + 1) % 7)  # Ключ для завтрашнего дня
+        tomorrow_key = str((datetime.now().weekday() + 1) % 7) 
 
         if tomorrow_key not in days_data:
             current_weekday = datetime.now().weekday()
@@ -375,6 +373,28 @@ class ETUApiClient:
 
         return result
 
+    def get_schedule_for_weekday(self, group_number: str, weekday_index: int) -> Optional[str]:
+        """Получает расписание для конкретного дня недели (0=Пн, 1=Вт, и т.д.)"""
+        group_schedule = self.extract_group_schedule(group_number)
+        if not group_schedule:
+            return None
 
-# Создаем экземпляр API клиента для импорта
+        days_data = group_schedule.get('days', {})
+        day_key = str(weekday_index)
+
+        if day_key not in days_data:
+            day_name = self.day_names[weekday_index]
+            return f"На {day_name.lower()} пар нет 🎉"
+
+        day_data = days_data[day_key]
+        lessons = self.remove_duplicate_lessons(day_data.get('lessons', []))
+
+        if not lessons:
+            day_name = self.day_names[weekday_index]
+            return f"На {day_name.lower()} пар нет 🎉"
+
+        day_name = self.day_names[weekday_index]
+        return self.format_day_schedule(lessons, day_name)
+
+
 api_client = ETUApiClient()
